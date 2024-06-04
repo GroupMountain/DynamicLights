@@ -5,4 +5,6 @@
 
 extern ll::Logger logger;
 
+extern void listenSwitchItem();
+
 extern std::string tr(std::string const& key, std::vector<std::string> const& params = {});

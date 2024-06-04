@@ -23,6 +23,7 @@ bool Entry::enable() {
     mI18n->loadAllLanguages();
     mI18n->setDefaultLanguage("zh_CN");
     mManager.emplace();
+    listenSwitchItem();
     return true;
 }
 
