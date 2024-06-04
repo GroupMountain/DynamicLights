@@ -3,8 +3,8 @@
     "entry": "${pluginFile}",
     "type": "native",
     "author": "author",
-    "description": "description",
-    "version": "0.0.0",
+    "description": "Dynamic Lights for BDS",
+    "version": "0.1.0",
     "dependencies": [
         {
             "name": "GMLIB"
