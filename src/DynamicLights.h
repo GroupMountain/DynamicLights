@@ -21,6 +21,8 @@ public:
 public:
     uint8_t getItemLightLevel(ItemStack const& item);
 
+    void readConfig();
+
     void setItemLightInfo(std::string const& typeName, uint8_t level);
 
     bool deleteItemLightInfo(std::string const& typeName);
@@ -41,5 +43,7 @@ public:
 
     void savePlayerConfig();
 
-    bool getPlayerConfig(Player& player);
+    bool getPlayerConfig(mce::UUID const& uuid);
+
+    void setPlayerConfig(mce::UUID const& uuid, bool value);
 };

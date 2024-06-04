@@ -15,8 +15,8 @@ bool Entry::load() { return true; }
 
 bool Entry::enable() {
     mConfig.emplace();
-    if (!ll::config::loadConfig(*mConfig, getSelf().getConfigDir() / u8"config.json")) {
-        ll::config::saveConfig(*mConfig, getSelf().getConfigDir() / u8"config.json");
+    if (!loadConfig()) {
+        saveConfig();
     }
     mI18n.emplace(getSelf().getLangDir(), getConfig().language);
     mI18n->updateOrCreateLanguage("zh_CN", zh_CN);
@@ -24,6 +24,7 @@ bool Entry::enable() {
     mI18n->setDefaultLanguage("zh_CN");
     mManager.emplace();
     listenSwitchItem();
+    registerCommands();
     return true;
 }
 
@@ -40,6 +41,10 @@ bool Entry::unload() {
 }
 
 Config& Entry::getConfig() { return mConfig.value(); }
+
+bool Entry::loadConfig() { return ll::config::loadConfig(*mConfig, getSelf().getConfigDir() / u8"config.json"); }
+
+bool Entry::saveConfig() { return ll::config::saveConfig(*mConfig, getSelf().getConfigDir() / u8"config.json"); }
 
 LangI18n& Entry::getI18n() { return mI18n.value(); }
 

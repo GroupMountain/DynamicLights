@@ -30,6 +30,10 @@ public:
 
     Config& getConfig();
 
+    bool loadConfig();
+
+    bool saveConfig();
+
     LangI18n& getI18n();
 
     DynamicLightsManager& getLightsManager();

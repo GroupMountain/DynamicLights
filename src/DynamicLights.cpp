@@ -9,7 +9,7 @@ struct PlayerDestructHook;
 struct ItemActorDestructHook;
 
 DynamicLightsManager::DynamicLightsManager() {
-    mItemLightInfo = DynamicLights::Entry::getInstance()->getConfig().itemLightInfo;
+    readConfig();
     loadPlayerConfig();
     ll::memory::HookRegistrar<PlayerTickHook, ItemActorTickHook, PlayerDestructHook, ItemActorDestructHook>().hook();
 }
@@ -20,6 +20,10 @@ DynamicLightsManager::~DynamicLightsManager() {
         lightOff(info.mPos, info.mDimId);
     }
     ll::memory::HookRegistrar<PlayerTickHook, ItemActorTickHook, PlayerDestructHook, ItemActorDestructHook>().unhook();
+}
+
+void DynamicLightsManager::readConfig() {
+    mItemLightInfo = DynamicLights::Entry::getInstance()->getConfig().itemLightInfo;
 }
 
 uint8_t DynamicLightsManager::getItemLightLevel(ItemStack const& item) {
@@ -76,7 +80,7 @@ void DynamicLightsManager::onItemActorTick(ItemActor& itemActor) {
 void DynamicLightsManager::sendPacket(Packet& packet, DimensionType dimId) {
     auto level = GMLIB_Level::getInstance();
     level->getOrCreateDimension(dimId)->forEachPlayer([&](Player& pl) -> bool {
-        if (mPlayerConfig[pl.getUuid()]) {
+        if (getPlayerConfig(pl.getUuid())) {
             level->sendPacketTo(packet, pl);
         }
         return true;
@@ -110,13 +114,16 @@ void DynamicLightsManager::lightOff(BlockPos const& pos, DimensionType dimId) {
 }
 
 void DynamicLightsManager::setItemLightInfo(std::string const& typeName, uint8_t level) {
-    mItemLightInfo[typeName] = level;
+    mItemLightInfo[typeName]                                       = level;
+    DynamicLights::Entry::getInstance()->getConfig().itemLightInfo = mItemLightInfo;
+    DynamicLights::Entry::getInstance()->saveConfig();
 }
 
 bool DynamicLightsManager::deleteItemLightInfo(std::string const& typeName) {
     if (mItemLightInfo.contains(typeName)) {
         mItemLightInfo.erase(typeName);
-        return true;
+        DynamicLights::Entry::getInstance()->getConfig().itemLightInfo = mItemLightInfo;
+        return DynamicLights::Entry::getInstance()->saveConfig();
     }
     return false;
 }
@@ -145,13 +152,16 @@ void DynamicLightsManager::savePlayerConfig() {
     );
 }
 
-bool DynamicLightsManager::getPlayerConfig(Player& player) {
-    auto uuid = player.getUuid();
+bool DynamicLightsManager::getPlayerConfig(mce::UUID const& uuid) {
     if (!mPlayerConfig.contains(uuid)) {
-        mPlayerConfig[uuid] = true;
-        savePlayerConfig();
+        setPlayerConfig(uuid, true);
     }
     return mPlayerConfig[uuid];
+}
+
+void DynamicLightsManager::setPlayerConfig(mce::UUID const& uuid, bool value) {
+    mPlayerConfig[uuid] = value;
+    savePlayerConfig();
 }
 
 void DynamicLightsManager::remove(int64_t identifider) {
