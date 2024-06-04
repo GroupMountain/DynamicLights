@@ -1,83 +1,53 @@
 #include "Entry.h"
 #include "Global.h"
-#include <fmt/format.h>
-#include <functional>
-#include <ll/api/Config.h>
-#include <ll/api/io/FileUtils.h>
-#include <ll/api/plugin/NativePlugin.h>
-#include <ll/api/plugin/PluginManagerRegistry.h>
-#include <memory>
-#include <stdexcept>
+#include "Language.h"
+
 ll::Logger logger(PLUGIN_NAME);
 
-namespace change_this {
+namespace DynamicLights {
 
-namespace {
-
-std::unique_ptr<std::reference_wrapper<ll::plugin::NativePlugin>>
-    selfPluginInstance; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
-
-auto disable(ll::plugin::NativePlugin& /*self*/) -> bool {
-    logger.info("disabling...");
-
-    // Your code here.
-
-    logger.info("disabled");
-
-    return true;
+std::unique_ptr<Entry>& Entry::getInstance() {
+    static std::unique_ptr<Entry> instance;
+    return instance;
 }
 
-auto enable(ll::plugin::NativePlugin& /*self*/) -> bool {
-    logger.info("enabling...");
+bool Entry::load() { return true; }
 
-    logger.info("enabled");
-
-    return true;
-}
-
-auto load(ll::plugin::NativePlugin& self) -> bool {
-    logger.info("loading...");
-
-    selfPluginInstance = std::make_unique<std::reference_wrapper<ll::plugin::NativePlugin>>(self);
-
-    // Your code here.
-
-    logger.info("loaded");
-
-    return true;
-}
-
-auto unload(ll::plugin::NativePlugin& self) -> bool {
-    auto& logger = self.getLogger();
-
-    logger.info("unloading...");
-
-    selfPluginInstance.reset();
-
-    // Your code here.
-
-    logger.info("unloaded");
-
-    return true;
-}
-
-} // namespace
-
-auto getSelfPluginInstance() -> ll::plugin::NativePlugin& {
-    if (!selfPluginInstance) {
-        throw std::runtime_error("selfPluginInstance is null");
+bool Entry::enable() {
+    mConfig.emplace();
+    if (!ll::config::loadConfig(*mConfig, getSelf().getConfigDir() / u8"config.json")) {
+        ll::config::saveConfig(*mConfig, getSelf().getConfigDir() / u8"config.json");
     }
-
-    return *selfPluginInstance;
+    mI18n.emplace(getSelf().getLangDir(), getConfig().language);
+    mI18n->updateOrCreateLanguage("zh_CN", zh_CN);
+    mI18n->loadAllLanguages();
+    mI18n->setDefaultLanguage("zh_CN");
+    mManager.emplace();
+    return true;
 }
 
-} // namespace change_this
-
-extern "C" {
-_declspec(dllexport) auto ll_plugin_disable(ll::plugin::NativePlugin& self) -> bool {
-    return change_this::disable(self);
+bool Entry::disable() {
+    mManager.reset();
+    mI18n.reset();
+    mConfig.reset();
+    return true;
 }
-_declspec(dllexport) auto ll_plugin_enable(ll::plugin::NativePlugin& self) -> bool { return change_this::enable(self); }
-_declspec(dllexport) auto ll_plugin_load(ll::plugin::NativePlugin& self) -> bool { return change_this::load(self); }
-_declspec(dllexport) auto ll_plugin_unload(ll::plugin::NativePlugin& self) -> bool { return change_this::unload(self); }
+
+bool Entry::unload() {
+    getInstance().reset();
+    return true;
+}
+
+Config& Entry::getConfig() { return mConfig.value(); }
+
+LangI18n& Entry::getI18n() { return mI18n.value(); }
+
+DynamicLightsManager& Entry::getLightsManager() { return mManager.value(); }
+
+} // namespace DynamicLights
+
+LL_REGISTER_PLUGIN(DynamicLights::Entry, DynamicLights::Entry::getInstance());
+
+std::string tr(std::string const& key, std::vector<std::string> const& params) {
+    return DynamicLights::Entry::getInstance()->getI18n().get(key, params);
 }
