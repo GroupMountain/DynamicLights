@@ -1,0 +1,26 @@
+{
+    "format_version": 2,
+    "tooth": "github.com/GroupMountain/DynamicLights",
+    "version": "0.1.0",
+    "info": {
+        "name": "DynamicLights",
+        "description": "Dynamic Lights for BDS",
+        "author": "GroupMountain",
+        "tags": [
+            "levilamina",
+            "dynamiclights"
+        ]
+    },
+    "asset_url": "https://github.com/GroupMountain/DynamicLights/releases/download/v0.1.0/DynamicLights-windows-x64.zip",
+    "dependencies": {
+        "github.com/GroupMountain/GMLIB": ">=0.12.8"
+    },
+    "files": {
+        "place": [
+            {
+                "src": "DynamicLights/*",
+                "dest": "plugins/DynamicLights"
+            }
+        ]
+    }
+}
