@@ -93,11 +93,8 @@ void registerAdminCommand() {
 }
 
 void registerPlayerCommand() {
-    auto& cmd = ll::command::CommandRegistrar::getInstance().getOrCreateCommand(
-        "dynamiclights",
-        tr("command.dynamiclights.desc"),
-        CommandPermissionLevel::Any
-    );
+    auto& cmd = ll::command::CommandRegistrar::getInstance()
+                    .getOrCreateCommand("dynamiclights", tr("command.dynamiclights.desc"), CommandPermissionLevel::Any);
     cmd.alias("dl");
     cmd.overload<ManageCommand>()
         .execute<[](CommandOrigin const& origin, CommandOutput& output, ManageCommand const& param) {
@@ -106,6 +103,7 @@ void registerPlayerCommand() {
                 auto& manager = DynamicLights::Entry::getInstance()->getLightsManager();
                 auto  enable  = !manager.getPlayerConfig(player->getUuid());
                 manager.setPlayerConfig(player->getUuid(), enable);
+                manager.remove(player->getOrCreateUniqueID().id);
                 return enable ? output.success(tr("command.dynamiclights.enabled"))
                               : output.success(tr("command.dynamiclights.disabled"));
             }

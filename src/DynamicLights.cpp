@@ -40,7 +40,7 @@ void DynamicLightsManager::onPlayerTick(Player& player) {
     auto const& lightLevel   = std::max(getItemLightLevel(mainhandItem), getItemLightLevel(offhandItem));
     auto const& dimId        = player.getDimensionId();
     auto        pos          = BlockPos(player.getPosition());
-    auto&       lastInfo     = mRuntimeLightMap[(uintptr_t)&player];
+    auto&       lastInfo     = mRuntimeLightMap[player.getOrCreateUniqueID().id];
     if (lightLevel > 0) {
         if (lastInfo.mPos != pos || lastInfo.mDimId != dimId) {
             lightOff(lastInfo.mPos, lastInfo.mDimId);
@@ -193,7 +193,7 @@ LL_TYPE_INSTANCE_HOOK(
     &ServerPlayer::disconnect,
     void
 ) {
-    DynamicLights::Entry::getInstance()->getLightsManager().remove((uintptr_t)this);
+    DynamicLights::Entry::getInstance()->getLightsManager().remove(this->getOrCreateUniqueID().id);
     return origin();
 }
 
