@@ -96,7 +96,7 @@ void registerPlayerCommand() {
     auto& cmd = ll::command::CommandRegistrar::getInstance().getOrCreateCommand(
         "dynamiclights",
         tr("command.dynamiclights.desc"),
-        CommandPermissionLevel::GameDirectors
+        CommandPermissionLevel::Any
     );
     cmd.alias("dl");
     cmd.overload<ManageCommand>()
