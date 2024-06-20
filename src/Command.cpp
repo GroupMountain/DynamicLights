@@ -101,9 +101,9 @@ void registerPlayerCommand() {
             if (origin.getOriginType() == CommandOriginType::Player) {
                 auto  player  = (Player*)origin.getEntity();
                 auto& manager = DynamicLights::Entry::getInstance()->getLightsManager();
-                auto  enable  = !manager.getPlayerConfig(player->getUuid());
-                manager.setPlayerConfig(player->getUuid(), enable);
                 manager.remove(player->getOrCreateUniqueID().id);
+                auto enable = !manager.getPlayerConfig(player->getUuid());
+                manager.setPlayerConfig(player->getUuid(), enable);
                 return enable ? output.success(tr("command.dynamiclights.enabled"))
                               : output.success(tr("command.dynamiclights.disabled"));
             }

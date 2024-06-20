@@ -1,7 +1,7 @@
 {
     "format_version": 2,
     "tooth": "github.com/GroupMountain/DynamicLights",
-    "version": "0.1.1",
+    "version": "0.2.0",
     "info": {
         "name": "DynamicLights",
         "description": "Dynamic Lights for BDS",
@@ -11,9 +11,9 @@
             "dynamiclights"
         ]
     },
-    "asset_url": "https://github.com/GroupMountain/DynamicLights/releases/download/v0.1.1/DynamicLights-windows-x64.zip",
+    "asset_url": "https://github.com/GroupMountain/DynamicLights/releases/download/v0.2.0/DynamicLights-windows-x64.zip",
     "dependencies": {
-        "github.com/GroupMountain/GMLIB": ">=0.12.8"
+        "github.com/GroupMountain/GMLIB": ">=0.13.0"
     },
     "files": {
         "place": [
