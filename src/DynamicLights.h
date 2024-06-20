@@ -33,9 +33,15 @@ public:
 
     void sendPacket(Packet& packet, DimensionType dimId);
 
+    void sendPacket(Packet& packet, Player& pl);
+
     void lightOn(BlockPos const& pos, DimensionType dimId, uint8_t lightLevel);
 
+    void lightOn(BlockPos const& pos, uint8_t lightLevel, Player& pl);
+
     void lightOff(BlockPos const& pos, DimensionType dimId);
+
+    void lightOff(BlockPos const& pos, Player& pl);
 
     void remove(int64_t identifider);
 
@@ -46,4 +52,8 @@ public:
     bool getPlayerConfig(mce::UUID const& uuid);
 
     void setPlayerConfig(mce::UUID const& uuid, bool value);
+
+    void removeLightsFrom(Player& pl);
+
+    void sendLightsTo(Player& pl);
 };

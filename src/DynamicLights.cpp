@@ -87,6 +87,10 @@ void DynamicLightsManager::sendPacket(Packet& packet, DimensionType dimId) {
     });
 }
 
+void DynamicLightsManager::sendPacket(Packet& packet, Player& pl) {
+    GMLIB_Level::getInstance()->sendPacketTo(packet, pl);
+}
+
 void DynamicLightsManager::lightOn(BlockPos const& pos, DimensionType dimId, uint8_t lightLevel) {
     auto& originBlock = GMLIB_Level::getInstance()->getBlock(pos, dimId);
     auto  fakeBlock   = Block::tryGetFromRegistry("minecraft:light_block", lightLevel);
@@ -101,6 +105,20 @@ void DynamicLightsManager::lightOn(BlockPos const& pos, DimensionType dimId, uin
     }
 }
 
+void DynamicLightsManager::lightOn(BlockPos const& pos, uint8_t lightLevel, Player& pl) {
+    auto& originBlock = GMLIB_Level::getInstance()->getBlock(pos, pl.getDimensionId());
+    auto  fakeBlock   = Block::tryGetFromRegistry("minecraft:light_block", lightLevel);
+    auto  runtimeId   = fakeBlock->getRuntimeId();
+    if (originBlock.isAir()) {
+        UpdateBlockPacket pkt(pos, 1, runtimeId, 3);
+        sendPacket(pkt, pl);
+    } else if (originBlock.getTypeName() == "minecraft:water"
+               || originBlock.getTypeName() == "minecraft:flowing_water") {
+        UpdateBlockPacket pkt(pos, 0, runtimeId, 3);
+        sendPacket(pkt, pl);
+    }
+}
+
 void DynamicLightsManager::lightOff(BlockPos const& pos, DimensionType dimId) {
     auto& originBlock = GMLIB_Level::getInstance()->getBlock(pos, dimId);
     auto  runtimeId   = originBlock.getRuntimeId();
@@ -110,6 +128,18 @@ void DynamicLightsManager::lightOff(BlockPos const& pos, DimensionType dimId) {
     } else {
         UpdateBlockPacket pkt(pos, 1, runtimeId, 3);
         sendPacket(pkt, dimId);
+    }
+}
+
+void DynamicLightsManager::lightOff(BlockPos const& pos, Player& pl) {
+    auto& originBlock = GMLIB_Level::getInstance()->getBlock(pos, pl.getDimensionId());
+    auto  runtimeId   = originBlock.getRuntimeId();
+    if (originBlock.getTypeName() == "minecraft:water" || originBlock.getTypeName() == "minecraft:flowing_water") {
+        UpdateBlockPacket pkt(pos, 0, runtimeId, 3);
+        sendPacket(pkt, pl);
+    } else {
+        UpdateBlockPacket pkt(pos, 1, runtimeId, 3);
+        sendPacket(pkt, pl);
     }
 }
 
@@ -168,6 +198,22 @@ void DynamicLightsManager::remove(int64_t identifider) {
     auto& info = mRuntimeLightMap[identifider];
     lightOff(info.mPos, info.mDimId);
     mRuntimeLightMap.erase(identifider);
+}
+
+void DynamicLightsManager::removeLightsFrom(Player& pl) {
+    for (auto& [id, info] : mRuntimeLightMap) {
+        if (pl.getDimensionId() == info.mDimId) {
+            lightOff(info.mPos, pl);
+        }
+    }
+}
+
+void DynamicLightsManager::sendLightsTo(Player& pl) {
+    for (auto& [id, info] : mRuntimeLightMap) {
+        if (pl.getDimensionId() == info.mDimId) {
+            lightOn(info.mPos, info.mLightLevel, pl);
+        }
+    }
 }
 
 LL_TYPE_INSTANCE_HOOK(PlayerTickHook, ll::memory::HookPriority::Normal, Player, "?normalTick@Player@@UEAAXXZ", void) {

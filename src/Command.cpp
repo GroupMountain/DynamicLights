@@ -104,6 +104,7 @@ void registerPlayerCommand() {
                 manager.remove(player->getOrCreateUniqueID().id);
                 auto enable = !manager.getPlayerConfig(player->getUuid());
                 manager.setPlayerConfig(player->getUuid(), enable);
+                enable ? manager.sendLightsTo(*player) : manager.removeLightsFrom(*player);
                 return enable ? output.success(tr("command.dynamiclights.enabled"))
                               : output.success(tr("command.dynamiclights.disabled"));
             }
