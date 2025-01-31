@@ -95,7 +95,11 @@ void DynamicLightsManager::lightOn(BlockPos const& pos, DimensionType dimId, uin
     auto& originBlock = GMLIB_Level::getInstance()->getBlock(pos, dimId);
     auto  fakeBlock   = Block::tryGetFromRegistry("minecraft:light_block", lightLevel);
     auto  runtimeId   = fakeBlock->getRuntimeId();
-    if (originBlock.isAir()) {
+    auto& extraBlock  = GMLIB_Level::getInstance()->getBlockSource(dimId).getBlock(pos, 1);
+    if (originBlock.isAir() && extraBlock.getTypeName() == "minecraft:snow_layer") {
+        UpdateBlockPacket pkt(pos, 0, runtimeId, 3);
+        sendPacket(pkt, dimId);
+    } else if (originBlock.isAir()) {
         UpdateBlockPacket pkt(pos, 1, runtimeId, 3);
         sendPacket(pkt, dimId);
     } else if (originBlock.getTypeName() == "minecraft:water"
@@ -109,7 +113,11 @@ void DynamicLightsManager::lightOn(BlockPos const& pos, uint8_t lightLevel, Play
     auto& originBlock = GMLIB_Level::getInstance()->getBlock(pos, pl.getDimensionId());
     auto  fakeBlock   = Block::tryGetFromRegistry("minecraft:light_block", lightLevel);
     auto  runtimeId   = fakeBlock->getRuntimeId();
-    if (originBlock.isAir()) {
+    auto& extraBlock  = GMLIB_Level::getInstance()->getBlockSource(pl.getDimensionId()).getBlock(pos, 1);
+    if (originBlock.isAir() && extraBlock.getTypeName() == "minecraft:snow_layer") {
+        UpdateBlockPacket pkt(pos, 0, runtimeId, 3);
+        sendPacket(pkt, pl);
+    } else if (originBlock.isAir()) {
         UpdateBlockPacket pkt(pos, 1, runtimeId, 3);
         sendPacket(pkt, pl);
     } else if (originBlock.getTypeName() == "minecraft:water"
