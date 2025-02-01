@@ -4,8 +4,6 @@
 #define PLUGIN_NAME "DynamicLights"
 #define S(x) std::to_string(x)
 
-extern ll::Logger logger;
-
 extern void listenSwitchItem();
 extern void registerCommands();
 
