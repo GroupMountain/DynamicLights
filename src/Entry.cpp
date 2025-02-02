@@ -2,12 +2,10 @@
 #include "Global.h"
 #include "Language.h"
 
-ll::Logger logger(PLUGIN_NAME);
-
 namespace DynamicLights {
 
-std::unique_ptr<Entry>& Entry::getInstance() {
-    static std::unique_ptr<Entry> instance;
+Entry& Entry::getInstance() {
+    static Entry instance;
     return instance;
 }
 
@@ -34,12 +32,10 @@ bool Entry::disable() {
     mConfig.reset();
     return true;
 }
-
 bool Entry::unload() {
-    getInstance().reset();
+    // getInstance().reset();
     return true;
 }
-
 Config& Entry::getConfig() { return mConfig.value(); }
 
 bool Entry::loadConfig() { return ll::config::loadConfig(*mConfig, getSelf().getConfigDir() / u8"config.json"); }
@@ -52,8 +48,8 @@ DynamicLightsManager& Entry::getLightsManager() { return mManager.value(); }
 
 } // namespace DynamicLights
 
-LL_REGISTER_PLUGIN(DynamicLights::Entry, DynamicLights::Entry::getInstance());
+LL_REGISTER_MOD(DynamicLights::Entry, DynamicLights::Entry::getInstance());
 
 std::string tr(std::string const& key, std::vector<std::string> const& params) {
-    return DynamicLights::Entry::getInstance()->getI18n().get(key, params);
+    return DynamicLights::Entry::getInstance().getI18n().get(key, params);
 }

@@ -3,6 +3,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+namespace DynamicLights {
+
 struct Config {
     int version = 1;
 
@@ -14,3 +16,4 @@ struct Config {
         {"minecraft:torch", 14}
     };
 };
+} // namespace DynamicLights

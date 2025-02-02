@@ -16,14 +16,14 @@ DynamicLightsManager::DynamicLightsManager() {
 
 DynamicLightsManager::~DynamicLightsManager() {
     savePlayerConfig();
-    for (auto& [identifider, info] : mRuntimeLightMap) {
+    for (auto& [itemActorId, info] : mRuntimeLightMap) {
         lightOff(info.mPos, info.mDimId);
     }
     ll::memory::HookRegistrar<PlayerTickHook, ItemActorTickHook, PlayerDestructHook, ItemActorDestructHook>().unhook();
 }
 
 void DynamicLightsManager::readConfig() {
-    mItemLightInfo = DynamicLights::Entry::getInstance()->getConfig().itemLightInfo;
+    mItemLightInfo = DynamicLights::Entry::getInstance().getConfig().itemLightInfo;
 }
 
 uint8_t DynamicLightsManager::getItemLightLevel(ItemStack const& item) {
@@ -40,7 +40,7 @@ void DynamicLightsManager::onPlayerTick(Player& player) {
     auto const& lightLevel   = std::max(getItemLightLevel(mainhandItem), getItemLightLevel(offhandItem));
     auto const& dimId        = player.getDimensionId();
     auto        pos          = BlockPos(player.getPosition());
-    auto&       lastInfo     = mRuntimeLightMap[player.getOrCreateUniqueID().id];
+    auto&       lastInfo     = mRuntimeLightMap[player.getOrCreateUniqueID().rawID];
     if (lightLevel > 0) {
         if (lastInfo.mPos != pos || lastInfo.mDimId != dimId) {
             lightOff(lastInfo.mPos, lastInfo.mDimId);
@@ -57,11 +57,13 @@ void DynamicLightsManager::onPlayerTick(Player& player) {
 }
 
 void DynamicLightsManager::onItemActorTick(ItemActor& itemActor) {
-    auto&       item       = itemActor.item();
-    auto const& lightLevel = getItemLightLevel(item);
-    auto const& dimId      = itemActor.getDimensionId();
-    auto        pos        = BlockPos(itemActor.getPosition());
-    auto&       lastInfo   = mRuntimeLightMap[(uintptr_t)&itemActor];
+    auto&       item        = itemActor.item();
+    auto const& lightLevel  = getItemLightLevel(item);
+    auto const& dimId       = itemActor.getDimensionId();
+    auto        pos         = BlockPos(itemActor.getPosition());
+    auto        itemActorId = reinterpret_cast<int64_t>(&itemActor); // 使用 ItemActor 的地址作为键值
+    auto&       lastInfo    = mRuntimeLightMap[itemActorId];
+
     if (lightLevel > 0) {
         if (lastInfo.mPos != pos || lastInfo.mDimId != dimId) {
             lightOff(lastInfo.mPos, lastInfo.mDimId);
@@ -95,15 +97,11 @@ void DynamicLightsManager::lightOn(BlockPos const& pos, DimensionType dimId, uin
     auto& originBlock = GMLIB_Level::getInstance()->getBlock(pos, dimId);
     auto  fakeBlock   = Block::tryGetFromRegistry("minecraft:light_block", lightLevel);
     auto  runtimeId   = fakeBlock->getRuntimeId();
-    auto& extraBlock  = GMLIB_Level::getInstance()->getBlockSource(dimId).getBlock(pos, 1);
-    if (originBlock.isAir() && extraBlock.getTypeName() == "minecraft:snow_layer") {
-        UpdateBlockPacket pkt(pos, 0, runtimeId, 3);
-        sendPacket(pkt, dimId);
-    } else if (originBlock.isAir()) {
+    if (originBlock.isAir()) {
         UpdateBlockPacket pkt(pos, 1, runtimeId, 3);
         sendPacket(pkt, dimId);
-    } else if (originBlock.getTypeName() == "minecraft:water"
-               || originBlock.getTypeName() == "minecraft:flowing_water") {
+    } else if (originBlock.getTypeName() == "minecraft:water" || originBlock.getTypeName() == "minecraft:flowing_water"
+               || originBlock.getTypeName() == "minecraft:snow_layer") {
         UpdateBlockPacket pkt(pos, 0, runtimeId, 3);
         sendPacket(pkt, dimId);
     }
@@ -113,15 +111,11 @@ void DynamicLightsManager::lightOn(BlockPos const& pos, uint8_t lightLevel, Play
     auto& originBlock = GMLIB_Level::getInstance()->getBlock(pos, pl.getDimensionId());
     auto  fakeBlock   = Block::tryGetFromRegistry("minecraft:light_block", lightLevel);
     auto  runtimeId   = fakeBlock->getRuntimeId();
-    auto& extraBlock  = GMLIB_Level::getInstance()->getBlockSource(pl.getDimensionId()).getBlock(pos, 1);
-    if (originBlock.isAir() && extraBlock.getTypeName() == "minecraft:snow_layer") {
-        UpdateBlockPacket pkt(pos, 0, runtimeId, 3);
-        sendPacket(pkt, pl);
-    } else if (originBlock.isAir()) {
+    if (originBlock.isAir()) {
         UpdateBlockPacket pkt(pos, 1, runtimeId, 3);
         sendPacket(pkt, pl);
-    } else if (originBlock.getTypeName() == "minecraft:water"
-               || originBlock.getTypeName() == "minecraft:flowing_water") {
+    } else if (originBlock.getTypeName() == "minecraft:water" || originBlock.getTypeName() == "minecraft:flowing_water"
+               || originBlock.getTypeName() == "minecraft:snow_layer") {
         UpdateBlockPacket pkt(pos, 0, runtimeId, 3);
         sendPacket(pkt, pl);
     }
@@ -130,7 +124,8 @@ void DynamicLightsManager::lightOn(BlockPos const& pos, uint8_t lightLevel, Play
 void DynamicLightsManager::lightOff(BlockPos const& pos, DimensionType dimId) {
     auto& originBlock = GMLIB_Level::getInstance()->getBlock(pos, dimId);
     auto  runtimeId   = originBlock.getRuntimeId();
-    if (originBlock.getTypeName() == "minecraft:water" || originBlock.getTypeName() == "minecraft:flowing_water") {
+    if (originBlock.getTypeName() == "minecraft:water" || originBlock.getTypeName() == "minecraft:flowing_water"
+        || originBlock.getTypeName() == "minecraft:snow_layer") {
         UpdateBlockPacket pkt(pos, 0, runtimeId, 3);
         sendPacket(pkt, dimId);
     } else {
@@ -142,7 +137,8 @@ void DynamicLightsManager::lightOff(BlockPos const& pos, DimensionType dimId) {
 void DynamicLightsManager::lightOff(BlockPos const& pos, Player& pl) {
     auto& originBlock = GMLIB_Level::getInstance()->getBlock(pos, pl.getDimensionId());
     auto  runtimeId   = originBlock.getRuntimeId();
-    if (originBlock.getTypeName() == "minecraft:water" || originBlock.getTypeName() == "minecraft:flowing_water") {
+    if (originBlock.getTypeName() == "minecraft:water" || originBlock.getTypeName() == "minecraft:flowing_water"
+        || originBlock.getTypeName() == "minecraft:snow_layer") {
         UpdateBlockPacket pkt(pos, 0, runtimeId, 3);
         sendPacket(pkt, pl);
     } else {
@@ -152,23 +148,23 @@ void DynamicLightsManager::lightOff(BlockPos const& pos, Player& pl) {
 }
 
 void DynamicLightsManager::setItemLightInfo(std::string const& typeName, uint8_t level) {
-    mItemLightInfo[typeName]                                       = level;
-    DynamicLights::Entry::getInstance()->getConfig().itemLightInfo = mItemLightInfo;
-    DynamicLights::Entry::getInstance()->saveConfig();
+    mItemLightInfo[typeName]                                      = level;
+    DynamicLights::Entry::getInstance().getConfig().itemLightInfo = mItemLightInfo;
+    DynamicLights::Entry::getInstance().saveConfig();
 }
 
 bool DynamicLightsManager::deleteItemLightInfo(std::string const& typeName) {
     if (mItemLightInfo.contains(typeName)) {
         mItemLightInfo.erase(typeName);
-        DynamicLights::Entry::getInstance()->getConfig().itemLightInfo = mItemLightInfo;
-        return DynamicLights::Entry::getInstance()->saveConfig();
+        DynamicLights::Entry::getInstance().getConfig().itemLightInfo = mItemLightInfo;
+        return DynamicLights::Entry::getInstance().saveConfig();
     }
     return false;
 }
 
 void DynamicLightsManager::loadPlayerConfig() {
     auto json = GMLIB::Files::JsonFile::initJson(
-        DynamicLights::Entry::getInstance()->getSelf().getDataDir() / u8"PlayerData.json",
+        DynamicLights::Entry::getInstance().getSelf().getDataDir() / u8"PlayerData.json",
         nlohmann::json::object()
     );
     for (nlohmann::json::const_iterator it = json.begin(); it != json.end(); ++it) {
@@ -185,7 +181,7 @@ void DynamicLightsManager::savePlayerConfig() {
         json[key.asString()] = val;
     }
     GMLIB::Files::JsonFile::writeFile(
-        DynamicLights::Entry::getInstance()->getSelf().getDataDir() / u8"PlayerData.json",
+        DynamicLights::Entry::getInstance().getSelf().getDataDir() / u8"PlayerData.json",
         json
     );
 }
@@ -202,10 +198,13 @@ void DynamicLightsManager::setPlayerConfig(mce::UUID const& uuid, bool value) {
     savePlayerConfig();
 }
 
-void DynamicLightsManager::remove(int64_t identifider) {
-    auto& info = mRuntimeLightMap[identifider];
-    lightOff(info.mPos, info.mDimId);
-    mRuntimeLightMap.erase(identifider);
+void DynamicLightsManager::remove(int64_t itemActorId) {
+    auto it = mRuntimeLightMap.find(itemActorId);
+    if (it != mRuntimeLightMap.end()) {
+        auto& info = it->second;
+        lightOff(info.mPos, info.mDimId);
+        mRuntimeLightMap.erase(it);
+    }
 }
 
 void DynamicLightsManager::removeLightsFrom(Player& pl) {
@@ -224,8 +223,8 @@ void DynamicLightsManager::sendLightsTo(Player& pl) {
     }
 }
 
-LL_TYPE_INSTANCE_HOOK(PlayerTickHook, ll::memory::HookPriority::Normal, Player, "?normalTick@Player@@UEAAXXZ", void) {
-    DynamicLights::Entry::getInstance()->getLightsManager().onPlayerTick(*this);
+LL_TYPE_INSTANCE_HOOK(PlayerTickHook, ll::memory::HookPriority::Normal, Player, &Player::$normalTick, void) {
+    DynamicLights::Entry::getInstance().getLightsManager().onPlayerTick(*this);
     return origin();
 }
 
@@ -236,7 +235,7 @@ LL_TYPE_INSTANCE_HOOK(
     &ItemActor::postNormalTick,
     void
 ) {
-    DynamicLights::Entry::getInstance()->getLightsManager().onItemActorTick(*this);
+    DynamicLights::Entry::getInstance().getLightsManager().onItemActorTick(*this);
     return origin();
 }
 
@@ -247,7 +246,7 @@ LL_TYPE_INSTANCE_HOOK(
     &ServerPlayer::disconnect,
     void
 ) {
-    DynamicLights::Entry::getInstance()->getLightsManager().remove(this->getOrCreateUniqueID().id);
+    DynamicLights::Entry::getInstance().getLightsManager().remove(this->getOrCreateUniqueID().rawID);
     return origin();
 }
 
@@ -255,10 +254,10 @@ LL_TYPE_INSTANCE_HOOK(
     ItemActorDestructHook,
     ll::memory::HookPriority::Normal,
     ItemActor,
-    "??_EItemActor@@UEAAPEAXI@Z",
+    &ItemActor::$dtor,
     void,
-    char a1
+    void
 ) {
-    DynamicLights::Entry::getInstance()->getLightsManager().remove((uintptr_t)this);
-    return origin(a1);
+    DynamicLights::Entry::getInstance().getLightsManager().remove((uintptr_t)this);
+    return origin();
 }

@@ -1,13 +1,14 @@
 {
-    "name": "${pluginName}",
-    "entry": "${pluginFile}",
+    "name": "DynamicLights",
+    "entry": "DynamicLights.dll",
     "type": "native",
     "author": "author",
     "description": "Dynamic Lights for BDS",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "dependencies": [
-        {
-            "name": "GMLIB"
-        }
+      {
+        "name": "GMLIB"
+      }
     ]
-}
+  }
+  
