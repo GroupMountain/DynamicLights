@@ -4,7 +4,7 @@
     "type": "native",
     "author": "author",
     "description": "Dynamic Lights for BDS",
-    "version": "0.2.2",
+    "version": "0.2.1",
     "dependencies": [
       {
         "name": "GMLIB"
